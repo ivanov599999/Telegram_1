@@ -1,0 +1,16 @@
+workflows:
+  android-workflow:
+    name: WeryGram Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      java: 17
+    scripts:
+      - name: Apply patches
+        script: python3 patcher.py
+      - name: Set permissions
+        script: chmod +x gradlew
+      - name: Build APK
+        script: ./gradlew :TMessagesProj_App:assembleAfatDebug --no-parallel
+    artifacts:
+      - TMessagesProj_App/build/outputs/apk/**/*.apk
