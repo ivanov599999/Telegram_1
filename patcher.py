@@ -141,15 +141,22 @@ def patch_user_config(errors):
         if ch in (' ', '\t'): indent += ch
         else: break
     
-    # Авто-сейв и восстановление эмодзи, цвета профиля и цвета имени
+    # Жесткий сейв с игнорированием сброса цвета и профиля от сервера
     patch = (
         f'{indent}try {{\n'
         f'{indent}    android.content.SharedPreferences __p = org.telegram.messenger.MessagesController.getGlobalMainSettings();\n'
         f'{indent}    if (currentUser != null && __p.getBoolean("wery_visual_premium", false)) {{\n'
         f'{indent}        currentUser.premium = true;\n'
+        
+        # Эмодзи статус
         f'{indent}        if (currentUser.emoji_status instanceof org.telegram.tgnet.TLRPC.TL_emojiStatus) {{\n'
         f'{indent}            long __curEid = ((org.telegram.tgnet.TLRPC.TL_emojiStatus) currentUser.emoji_status).document_id;\n'
-        f'{indent}            if (__curEid != 0 && __curEid != __p.getLong("wery_emoji_id", 0)) __p.edit().putLong("wery_emoji_id", __curEid).apply();\n'
+        f'{indent}            if (__curEid != 0) {{\n'
+        f'{indent}                __p.edit().putLong("wery_emoji_id", __curEid).apply();\n'
+        f'{indent}            }} else {{\n'
+        f'{indent}                long __savedEid = __p.getLong("wery_emoji_id", 0);\n'
+        f'{indent}                if (__savedEid != 0) ((org.telegram.tgnet.TLRPC.TL_emojiStatus) currentUser.emoji_status).document_id = __savedEid;\n'
+        f'{indent}            }}\n'
         f'{indent}        }} else {{\n'
         f'{indent}            long __savedEid = __p.getLong("wery_emoji_id", 0);\n'
         f'{indent}            if (__savedEid != 0) {{\n'
@@ -158,33 +165,51 @@ def patch_user_config(errors):
         f'{indent}                currentUser.emoji_status = __es;\n'
         f'{indent}            }}\n'
         f'{indent}        }}\n'
+        
+        # Цвет и фон ПРОФИЛЯ
         f'{indent}        if (currentUser.profile_color != null) {{\n'
         f'{indent}            int __cColor = currentUser.profile_color.color;\n'
         f'{indent}            long __cEmoji = currentUser.profile_color.background_emoji_id;\n'
-        f'{indent}            if (__cColor != __p.getInt("wery_pcolor_id", -1) || __cEmoji != __p.getLong("wery_pcolor_emoji", 0)) {{\n'
+        f'{indent}            if (__cColor >= 0 || __cEmoji != 0) {{\n'
         f'{indent}                __p.edit().putInt("wery_pcolor_id", __cColor).putLong("wery_pcolor_emoji", __cEmoji).apply();\n'
+        f'{indent}            }} else {{\n'
+        f'{indent}                int __savedPid = __p.getInt("wery_pcolor_id", -1);\n'
+        f'{indent}                long __savedPEmoji = __p.getLong("wery_pcolor_emoji", 0);\n'
+        f'{indent}                if (__savedPid >= 0 || __savedPEmoji != 0) {{\n'
+        f'{indent}                    currentUser.profile_color.color = __savedPid >= 0 ? __savedPid : __cColor;\n'
+        f'{indent}                    currentUser.profile_color.background_emoji_id = __savedPEmoji;\n'
+        f'{indent}                }}\n'
         f'{indent}            }}\n'
         f'{indent}        }} else {{\n'
         f'{indent}            int __savedPid = __p.getInt("wery_pcolor_id", -1);\n'
         f'{indent}            long __savedPEmoji = __p.getLong("wery_pcolor_emoji", 0);\n'
-        f'{indent}            if (__savedPid != -1 || __savedPEmoji != 0) {{\n'
+        f'{indent}            if (__savedPid >= 0 || __savedPEmoji != 0) {{\n'
         f'{indent}                currentUser.profile_color = new org.telegram.tgnet.TLRPC.TL_peerColor();\n'
-        f'{indent}                if (__savedPid != -1) currentUser.profile_color.color = __savedPid;\n'
+        f'{indent}                if (__savedPid >= 0) currentUser.profile_color.color = __savedPid;\n'
         f'{indent}                currentUser.profile_color.background_emoji_id = __savedPEmoji;\n'
         f'{indent}            }}\n'
         f'{indent}        }}\n'
+        
+        # Цвет ИМЕНИ
         f'{indent}        if (currentUser.color != null) {{\n'
         f'{indent}            int __nColor = currentUser.color.color;\n'
         f'{indent}            long __nEmoji = currentUser.color.background_emoji_id;\n'
-        f'{indent}            if (__nColor != __p.getInt("wery_color_id", -1) || __nEmoji != __p.getLong("wery_color_emoji", 0)) {{\n'
+        f'{indent}            if (__nColor >= 0 || __nEmoji != 0) {{\n'
         f'{indent}                __p.edit().putInt("wery_color_id", __nColor).putLong("wery_color_emoji", __nEmoji).apply();\n'
+        f'{indent}            }} else {{\n'
+        f'{indent}                int __savedCid = __p.getInt("wery_color_id", -1);\n'
+        f'{indent}                long __savedCEmoji = __p.getLong("wery_color_emoji", 0);\n'
+        f'{indent}                if (__savedCid >= 0 || __savedCEmoji != 0) {{\n'
+        f'{indent}                    currentUser.color.color = __savedCid >= 0 ? __savedCid : __nColor;\n'
+        f'{indent}                    currentUser.color.background_emoji_id = __savedCEmoji;\n'
+        f'{indent}                }}\n'
         f'{indent}            }}\n'
         f'{indent}        }} else {{\n'
         f'{indent}            int __savedCid = __p.getInt("wery_color_id", -1);\n'
         f'{indent}            long __savedCEmoji = __p.getLong("wery_color_emoji", 0);\n'
-        f'{indent}            if (__savedCid != -1 || __savedCEmoji != 0) {{\n'
+        f'{indent}            if (__savedCid >= 0 || __savedCEmoji != 0) {{\n'
         f'{indent}                currentUser.color = new org.telegram.tgnet.TLRPC.TL_peerColor();\n'
-        f'{indent}                if (__savedCid != -1) currentUser.color.color = __savedCid;\n'
+        f'{indent}                if (__savedCid >= 0) currentUser.color.color = __savedCid;\n'
         f'{indent}                currentUser.color.background_emoji_id = __savedCEmoji;\n'
         f'{indent}            }}\n'
         f'{indent}        }}\n'
@@ -215,32 +240,39 @@ def patch_messages_controller(errors):
         return errors + 1
     var_name = "id" if "Long id)" in marker else ("uid" if "Long uid)" in marker else "javaLong")
     
-    # Жесткий фикс ботов и других юзеров: проверяем !__u.bot и точное совпадение ID 
+    # Фикс ботов и перехват кэша
     insertion = (
         f"        if ({var_name} != null && org.telegram.messenger.MessagesController.getGlobalMainSettings().getBoolean(\"wery_visual_premium\", false)) {{\n"
         f"            org.telegram.tgnet.TLRPC.User __u = users.get({var_name});\n"
-        f"            if (__u != null && !__u.bot && __u.id == (long) UserConfig.getInstance(currentAccount).getClientUserId()) {{\n"
+        f"            if (__u != null && !__u.bot && __u.id == (long) org.telegram.messenger.UserConfig.getInstance(currentAccount).getClientUserId()) {{\n"
         f"                __u.premium = true;\n"
         f"                try {{\n"
         f"                    android.content.SharedPreferences __p = org.telegram.messenger.MessagesController.getGlobalMainSettings();\n"
+        
         f"                    long __savedEid = __p.getLong(\"wery_emoji_id\", 0);\n"
-        f"                    if (__savedEid != 0 && !(__u.emoji_status instanceof org.telegram.tgnet.TLRPC.TL_emojiStatus)) {{\n"
-        f"                        org.telegram.tgnet.TLRPC.TL_emojiStatus __es = new org.telegram.tgnet.TLRPC.TL_emojiStatus();\n"
-        f"                        __es.document_id = __savedEid;\n"
-        f"                        __u.emoji_status = __es;\n"
+        f"                    if (__savedEid != 0) {{\n"
+        f"                        if (__u.emoji_status instanceof org.telegram.tgnet.TLRPC.TL_emojiStatus) {{\n"
+        f"                            ((org.telegram.tgnet.TLRPC.TL_emojiStatus) __u.emoji_status).document_id = __savedEid;\n"
+        f"                        }} else {{\n"
+        f"                            org.telegram.tgnet.TLRPC.TL_emojiStatus __es = new org.telegram.tgnet.TLRPC.TL_emojiStatus();\n"
+        f"                            __es.document_id = __savedEid;\n"
+        f"                            __u.emoji_status = __es;\n"
+        f"                        }}\n"
         f"                    }}\n"
+        
         f"                    int __savedPid = __p.getInt(\"wery_pcolor_id\", -1);\n"
         f"                    long __savedPEmoji = __p.getLong(\"wery_pcolor_emoji\", 0);\n"
-        f"                    if (__savedPid != -1 || __savedPEmoji != 0) {{\n"
+        f"                    if (__savedPid >= 0 || __savedPEmoji != 0) {{\n"
         f"                        if (__u.profile_color == null) __u.profile_color = new org.telegram.tgnet.TLRPC.TL_peerColor();\n"
-        f"                        if (__savedPid != -1) __u.profile_color.color = __savedPid;\n"
+        f"                        if (__savedPid >= 0) __u.profile_color.color = __savedPid;\n"
         f"                        __u.profile_color.background_emoji_id = __savedPEmoji;\n"
         f"                    }}\n"
+        
         f"                    int __savedCid = __p.getInt(\"wery_color_id\", -1);\n"
         f"                    long __savedCEmoji = __p.getLong(\"wery_color_emoji\", 0);\n"
-        f"                    if (__savedCid != -1 || __savedCEmoji != 0) {{\n"
+        f"                    if (__savedCid >= 0 || __savedCEmoji != 0) {{\n"
         f"                        if (__u.color == null) __u.color = new org.telegram.tgnet.TLRPC.TL_peerColor();\n"
-        f"                        if (__savedCid != -1) __u.color.color = __savedCid;\n"
+        f"                        if (__savedCid >= 0) __u.color.color = __savedCid;\n"
         f"                        __u.color.background_emoji_id = __savedCEmoji;\n"
         f"                    }}\n"
         f"                }} catch (Exception __e) {{}}\n"
@@ -305,3 +337,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+        
