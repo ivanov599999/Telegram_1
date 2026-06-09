@@ -71,11 +71,8 @@ public class WeryGramPremiumActivity extends BaseFragment {
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-
         final SharedPreferences prefs = MessagesController.getGlobalMainSettings();
         final int account = currentAccount;
-
-        // ── Visual Premium toggle ────────────────────────────────────────────
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(AndroidUtilities.dp(16),AndroidUtilities.dp(14),AndroidUtilities.dp(16),AndroidUtilities.dp(14));
@@ -108,16 +105,12 @@ public class WeryGramPremiumActivity extends BaseFragment {
         row.addView(div);
         row.addView(toggle);
         root.addView(row);
-
-        // ── Divider ──────────────────────────────────────────────────────────
         android.view.View divider = new android.view.View(context);
         divider.setBackgroundColor(Theme.getColor(Theme.key_divider));
         divider.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
         root.addView(divider);
-
-        // ── Save emoji button ────────────────────────────────────────────────
         TextView saveEmoji = new TextView(context);
-        saveEmoji.setText("\uD83D\uDCBE \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0439 emoji");
+        saveEmoji.setText("\U0001F4BE \u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c \u0442\u0435\u043a\u0443\u0449\u0438\u0439 emoji");
         saveEmoji.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
         saveEmoji.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4));
         saveEmoji.setPadding(AndroidUtilities.dp(16),AndroidUtilities.dp(14),AndroidUtilities.dp(16),AndroidUtilities.dp(14));
@@ -139,13 +132,10 @@ public class WeryGramPremiumActivity extends BaseFragment {
             }
         });
         root.addView(saveEmoji);
-
-        // ── Clear emoji button ───────────────────────────────────────────────
         android.view.View divider2 = new android.view.View(context);
         divider2.setBackgroundColor(Theme.getColor(Theme.key_divider));
         divider2.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1));
         root.addView(divider2);
-
         TextView clearEmoji = new TextView(context);
         clearEmoji.setText("\u274C \u0421\u0431\u0440\u043e\u0441\u0438\u0442\u044c emoji");
         clearEmoji.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
@@ -156,7 +146,6 @@ public class WeryGramPremiumActivity extends BaseFragment {
             Toast.makeText(context, "Emoji \u0441\u0431\u0440\u043e\u0448\u0435\u043d", android.widget.Toast.LENGTH_SHORT).show();
         });
         root.addView(clearEmoji);
-
         fragmentView = root;
         return fragmentView;
     }
@@ -247,15 +236,11 @@ def patch_messages_controller(errors):
 def main():
     print("▶ WeryGram patcher\n")
     errors = 0
-
     errors = patch_user_config(errors)
     errors = patch_messages_controller(errors)
-
     sa = find_file("SettingsActivity.java")
     if not sa: print("✘ SettingsActivity.java not found", file=sys.stderr); sys.exit(1)
-
     if not insert_before(sa, "import org.telegram.ui.Components.", "import org.telegram.ui.WeryGramPremiumActivity;"): errors += 1
-
     fill_anchors = [
         "void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {",
         "public void fillItems(ArrayList<UItem> items, UniversalAdapter adapter) {",
@@ -276,7 +261,6 @@ def main():
             print("↩ skip fillItems")
     else:
         print("✘ fillItems не найден", file=sys.stderr); errors += 1
-
     click_anchors = [
         "void onItemClick(UItem item, View view, int position, float x, float y) {",
         "public void onItemClick(UItem item, View view, int position, float x, float y) {",
@@ -294,12 +278,10 @@ def main():
             errors += 1
     else:
         print("✘ onClick не найден", file=sys.stderr); errors += 1
-
     dest = os.path.join(os.path.dirname(sa), "WeryGramPremiumActivity.java")
     if os.path.exists(dest): os.remove(dest)
     with open(dest, "w", encoding="utf-8") as f: f.write(ACTIVITY)
     print("✔ created WeryGramPremiumActivity.java")
-
     if errors > 0:
         print(f"\n✘ {errors} ошибок", file=sys.stderr); sys.exit(1)
     print("\n✅ Done.")
