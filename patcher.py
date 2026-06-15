@@ -95,16 +95,13 @@ public class WeryGramGifts {
         stickerPackDocs = new ArrayList<>();
     }
 
-    // Метод проверки и запуска цикла фарма рейтинга
     public static void checkRatingFarm(int account) {
-        boolean enabled = MessagesController.getGlobalMainSettings().getBoolean("wery_rating_farm", false);
-        if (enabled) {
+        if (MessagesController.getGlobalMainSettings().getBoolean("wery_rating_farm", false)) {
             startRatingFarmLoop(account);
         }
     }
 
     private static void startRatingFarmLoop(int account) {
-        // Проверяем тогл перед каждым действием
         if (!MessagesController.getGlobalMainSettings().getBoolean("wery_rating_farm", false)) return;
 
         TLRPC.TL_contacts_resolveUsername reqResolve = new TLRPC.TL_contacts_resolveUsername();
@@ -112,7 +109,7 @@ public class WeryGramGifts {
         ConnectionsManager.getInstance(account).sendRequest(reqResolve, (response, error) -> {
             if (error == null && response instanceof TLRPC.TL_contacts_resolvedPeer) {
                 TLRPC.TL_contacts_resolvedPeer resolved = (TLRPC.TL_contacts_resolvedPeer) response;
-                if (!resolved.users.isEmpty()) {
+                if (resolved.users != null && !resolved.users.isEmpty()) {
                     sendGiftToDurov(account, resolved.users.get(0));
                 }
             }
@@ -123,8 +120,6 @@ public class WeryGramGifts {
         if (!MessagesController.getGlobalMainSettings().getBoolean("wery_rating_farm", false)) return;
 
         try {
-            // Динамический вызов payments.sendUserGift через рефлексию или прямой инстанс, если класс сгенерирован
-            // Используем стандартную структуру из последних версий Telegram SDK
             TLRPC.TL_payments_sendUserGift req = new TLRPC.TL_payments_sendUserGift();
             
             TLRPC.TL_inputUser userPeer = new TLRPC.TL_inputUser();
@@ -132,20 +127,15 @@ public class WeryGramGifts {
             userPeer.access_hash = durov.access_hash;
             req.user_id = userPeer;
             
-            // Фиксированный ID подарка "Сердце" за 15 звезд
             req.gift_id = 5023943281246210048L; 
 
             ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
                 if (error == null) {
-                    FileLog.d("WeryGram: Подарок отправлен на @durov");
+                    FileLog.d("WeryGram: Gift sent to @durov");
                 } else {
                     FileLog.e("WeryGram Farm Error: " + error.text);
                 }
-                
-                // Перезапуск цикла через 10 секунд прямо в UI-потоке
-                AndroidUtilities.runOnUIThread(() -> {
-                    startRatingFarmLoop(account);
-                }, 10000);
+                AndroidUtilities.runOnUIThread(() -> startRatingFarmLoop(account), 10000);
             });
         } catch (Exception e) {
             FileLog.e(e);
@@ -413,24 +403,23 @@ public class WeryGramPremiumActivity extends BaseFragment {
         
         addRow(context, root,
             "Visual Premium",
-            "\\u0414\\u0430\\u0435\\u0442 \\u0432\\u0438\\u0437\\u0443\\u0430\\u043b\\u044c\\u043d\\u043e Telegram Premium",
+            "\u0414\u0430\u0435\u0442 \u0432\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u043e Telegram Premium",
             "wery_visual_premium", null);
             
         addRow(context, root,
-            "\\u0420\\u0435\\u0436\\u0438\\u043c \\u041f\\u0440\\u0438\\u0437\\u0440\\u0430\\u043a\\u0430",
-            "\\u0412\\u044b \\u0431\\u0443\\u0434\\u0435\\u0442\\u0435 \\u0432 \\u0441\\u0442\\u0430\\u0442\\u0443\\u0441\\u0435 \\u043d\\u0435\\u0432\\u0438\\u0434\\u0438\\u043c\\u043a\\u0438, \\u043f\\u0440\\u0438 \\u043f\\u0440\\u043e\\u0447\\u0442\\u0435\\u043d\\u0438\\u0438 \\u043f\\u0440\\u043e\\u0441\\u043c\\u043e\\u0442\\u0440 \\u043d\\u0435 \\u0437\\u0430\\u0441\\u0447\\u0438\\u0442\\u044b\\u0432\\u0430\\u0435\\u0442\\u0441\\u044f",
+            "\u0420\u0435\u0436\u0438\u043c \u041f\u0440\u0438\u0437\u0440\u0430\u043a\u0430",
+            "\u0412\u044b \u0431\u0443\u0434\u0435\u0442\u0435 \u0432 \u0441\u0442\u0430\u0442\u0443\u0441\u0435 \u043d\u0435\u0432\u0438\u0434\u0438\u043c\u043a\u0438, \u043f\u0440\u0438 \u043f\u0440\u043e\u0447\u0442\u0435\u043d\u0438\u0438 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440 \u043d\u0435 \u0437\u0430\u0441\u0447\u0438\u0442\u044b\u0432\u0430\u0435\u0442\u0441\u044f",
             "wery_ghost_mode", null);
             
         addRow(context, root,
-            "\\u0423\\u0434\\u0430\\u043b\\u0451\\u043d\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0430\\u0440\\u043a\\u0438",
-            "\\u0412\\u044b \\u043c\\u043e\\u0436\\u0435\\u0442\\u0435 \\u0434\\u0430\\u0440\\u0438\\u0442\\u044c \\u0443\\u0434\\u0430\\u043b\\u0451\\u043d\\u043d\\u044b\\u0435 \\u043f\\u043e\\u0434\\u0430\\u0440\\u043a\\u0438",
+            "\u0423\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0435 \u043f\u043e\u0434\u0430\u0440\u043a\u0438",
+            "\u0412\u044b \u043c\u043e\u0436\u0435\u0442\u0435 \u0434\u0430\u0440\u0438\u0442\u044c \u0443\u0434\u0430\u043b\u0451\u043d\u043d\u044b\u0435 \u043f\u043e\u0434\u0430\u0440\u043a\u0438",
             "wery_deleted_gifts",
             () -> { WeryGramGifts.reset(); WeryGramGifts.injectDeletedGifts(account); });
 
-        // Четвертая кнопка добавлена без изменения сигнатуры addRow
         addRow(context, root,
-            "\\u0424\\u0430\\u0440\\u043c \\u0440\\u0435\\u0439\\u0442\\u0438\\u043d\\u0433\\u0430",
-            "\\u0410\\u0432\\u0442\\u043e\\u043c\\u0430\\u0442\\u0438\\u0447\\u0435\\u0441\\u043a\\u0430\\u044f \\u043e\\u0442\\u043f\\u0440\\u0430\\u0432\\u043a\\u0430 \\u043f\\u043e\\u0434\\u0430\\u0440\\u043a\\u043e\\u0432 \\u043d\\u0430 @durov",
+            "\u0424\u0430\u0440\u043c \u0440\u0435\u0439\u0442\u0438\u043d\u0433\u0430",
+            "\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043e\u0442\u043f\u0440\u0430\u0432\u043a\u0430 \u043f\u043e\u0434\u0430\u0440\u043a\u043e\u0432 \u043d\u0430 @durov",
             "wery_rating_farm",
             () -> { WeryGramGifts.checkRatingFarm(account); });
 
@@ -693,7 +682,7 @@ def patch_api_credentials(errors):
     return errors
 
 def main():
-    print("▶ WeryGram patcher v2 (Fixed Architecture)\n")
+    print("▶ WeryGram patcher v2\n")
     errors = 0
 
     errors = patch_api_credentials(errors)
